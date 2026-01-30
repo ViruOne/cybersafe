@@ -3,28 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberSafe Pro v6.1 - Final Ultimate</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔐</text></svg>">
+    <title>CyberSafe Pro v6.3</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔐</text></svg>">
     <style>
         :root { --bg: #0f0c29; --card: rgba(36, 36, 62, 0.8); --text: #00d2ff; --input: rgba(26, 26, 46, 0.8); --border: rgba(48, 43, 99, 0.5); }
         .light-mode { --bg: #e0e5ec; --card: rgba(255, 255, 255, 0.7); --text: #2c3e50; --input: rgba(236, 240, 241, 0.8); --border: rgba(189, 195, 199, 0.5); }
         body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; transition: 0.3s; margin: 0; display: flex; justify-content: center; padding: 20px; min-height: 100vh; background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #0f0c29 100%); }
-        .container { background: var(--card); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); width: 100%; max-width: 600px; border: 1px solid var(--border); }
+        .container { background: var(--card); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); width: 100%; max-width: 600px; border: 1px solid var(--border); }
         .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .lang-btn { background: var(--input); border: 1px solid var(--text); color: var(--text); padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold; }
-        
-        /* Password Wrapper with Eye */
         .pass-wrapper { position: relative; width: 100%; }
         .toggle-pass { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; z-index: 10; font-size: 18px; filter: grayscale(1); }
-        .toggle-pass:hover { filter: grayscale(0); }
-
-        /* Strength Meter */
         .strength-container { height: 4px; width: 100%; background: rgba(0,0,0,0.2); border-radius: 2px; margin: 5px 0 15px 0; overflow: hidden; }
         #pass-strength { height: 100%; width: 0%; transition: 0.5s; }
-
-        /* Time Lock Styling */
         .time-lock-section { background: rgba(0, 210, 255, 0.05); border: 1px dashed var(--border); padding: 12px; border-radius: 12px; margin: 10px 0; display: flex; align-items: center; justify-content: space-between; }
         .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -32,7 +25,6 @@
         .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #4ecca3; }
         input:checked + .slider:before { transform: translateX(20px); }
-
         input, textarea, select { width: 100%; background: var(--input); border: 1px solid var(--border); color: var(--text); padding: 14px; border-radius: 12px; margin: 8px 0; box-sizing: border-box; font-size: 16px; outline: none; }
         .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
         button:not(.btn-copy):not(.lang-btn) { flex: 1 1 140px; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.3s; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -40,7 +32,6 @@
         .btn-secondary { background: linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%); color: white; }
         .btn-share { background: #4ecca3; color: #1a1a2e; flex: 1 1 100% !important; }
         #ui-btn-save { flex: 1 1 100% !important; background: #ff9a9e; color: #1a1a2e; display: none; margin-top: 5px; }
-        
         .btn-copy { background: rgba(0, 210, 255, 0.1); border: 1px solid var(--text); color: var(--text); font-size: 10px; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
         #status { margin-top: 20px; padding: 12px; border-radius: 12px; text-align: center; font-size: 13px; background: var(--input); border: 1px solid var(--border); }
         #recovery-box { background: rgba(255, 75, 43, 0.9); color: white; padding: 15px; border-radius: 12px; margin: 15px 0; display: none; border-left: 5px solid #fff; }
@@ -108,31 +99,20 @@
         <button id="ui-btn-save" py-click="save_action">💾 Saqlash</button>
         <button id="ui-btn-share" class="btn-share" onclick="shareVault()">📤 Ulashish</button>
     </div>
-    <div id="status">✅ Tayyor.</div>
+    <div id="status">...</div>
 </div>
 
 <script>
     window.currentLang = 'uz';
     window.lastBlob = null;
     window.lastName = "";
+    window.currentFileHandle = null;
 
     const translations = {
-        uz: { title: "🔐 CyberSafe Pro", key_ph: "Parol", msg_ph: "Xabarni yozing...", btn_new: "🆕 Yangi Fayl", btn_open: "📁 Ochish", btn_save: "💾 Saqlash", btn_share: "📤 Ulashish", btn_copy: "📋 Nusxalash", timer_lbl: "Vaqtli cheklov:", char_lbl: "Belgilar: ", status_ready: "✅ Tayyor.", status_expired: "⌛ Fayl muddati tugagan!", status_err: "❌ Parol xato!", status_saved: "✅ Saqlandi!", status_copied: "📋 Nusxalandi!", alert_share: "Avval yangi fayl yarating!" },
-        ru: { title: "🔐 CyberSafe Pro", key_ph: "Пароль", msg_ph: "Введите сообщение...", btn_new: "🆕 Новый файл", btn_open: "📁 Открыть", btn_save: "💾 Сохранить", btn_share: "📤 Поделиться", btn_copy: "📋 Копировать", timer_lbl: "Лимит времени:", char_lbl: "Символы: ", status_ready: "✅ Готово.", status_expired: "⌛ Срок действия истек!", status_err: "❌ Ошибка пароля!", status_saved: "✅ Сохранено!", status_copied: "📋 Скопировано!", alert_share: "Сначала создайте новый файл!" },
-        en: { title: "🔐 CyberSafe Pro", key_ph: "Password", msg_ph: "Type message...", btn_new: "🆕 New File", btn_open: "📁 Open", btn_save: "💾 Save Changes", btn_share: "📤 Share Vault", btn_copy: "📋 Copy", timer_lbl: "Time Limit:", char_lbl: "Chars: ", status_ready: "✅ Ready.", status_expired: "⌛ File expired!", status_err: "❌ Password Error!", status_saved: "✅ Saved!", status_copied: "📋 Copied!", alert_share: "Create a new file first!" }
+        uz: { title: "🔐 CyberSafe Pro", key_ph: "Parol", msg_ph: "Xabarni yozing...", btn_new: "🆕 Yangi Fayl", btn_open: "📁 Ochish", btn_save: "💾 Saqlash", btn_share: "📤 Ulashish", btn_copy: "📋 Nusxalash", timer_lbl: "Vaqtli cheklov:", char_lbl: "Belgilar: ", status_ready: "✅ Tayyor.", status_expired: "⌛ Fayl muddati tugagan!", status_err: "❌ Parol xato!", status_saved: "✅ Saqlandi!", status_copied: "📋 Nusxalandi!", alert_share: "Avval yangi fayl yarating!", mobile_save: "✅ Yangi fayl sifatida saqlandi (Mobil)" },
+        ru: { title: "🔐 CyberSafe Pro", key_ph: "Пароль", msg_ph: "Введите сообщение...", btn_new: "🆕 Новый файл", btn_open: "📁 Открыть", btn_save: "💾 Сохранить", btn_share: "📤 Поделиться", btn_copy: "📋 Копировать", timer_lbl: "Лимит времени:", char_lbl: "Символы: ", status_ready: "✅ Готово.", status_expired: "⌛ Срок действия истек!", status_err: "❌ Ошибка пароля!", status_saved: "✅ Сохранено!", status_copied: "📋 Скопировано!", alert_share: "Сначала создайте новый файл!", mobile_save: "✅ Сохранено как новый файл (Моб)" },
+        en: { title: "🔐 CyberSafe Pro", key_ph: "Password", msg_ph: "Type message...", btn_new: "🆕 New File", btn_open: "📁 Open", btn_save: "💾 Save Changes", btn_share: "📤 Share Vault", btn_copy: "📋 Copy", timer_lbl: "Time Limit:", char_lbl: "Chars: ", status_ready: "✅ Ready.", status_expired: "⌛ File expired!", status_err: "❌ Password Error!", status_saved: "✅ Saved!", status_copied: "📋 Copied!", alert_share: "Create a new file first!", mobile_save: "✅ Saved as new file (Mobile)" }
     };
-
-    function togglePasswordVisibility() {
-        const keyInput = document.getElementById('key');
-        const eyeIcon = document.querySelector('.toggle-pass');
-        if (keyInput.type === 'password') {
-            keyInput.type = 'text';
-            eyeIcon.innerText = '🔒';
-        } else {
-            keyInput.type = 'password';
-            eyeIcon.innerText = '👁️';
-        }
-    }
 
     function changeLanguage(lang) {
         window.currentLang = lang; const t = translations[lang];
@@ -145,10 +125,22 @@
         document.getElementById('ui-btn-share').innerText = t.btn_share;
         document.getElementById('ui-timer-label').innerText = t.timer_lbl;
         document.querySelectorAll('.ui-copy-btn').forEach(btn => btn.innerText = t.btn_copy);
+        updateStatus('status_ready'); // Mana shu joyda status yangilanadi
         updateStats(document.getElementById('message').value);
     }
 
+    // Statusni yangilash uchun universal funksiya
+    window.updateStatus = (key) => {
+        const msg = translations[window.currentLang][key] || key;
+        document.getElementById('status').innerText = msg;
+    };
+
     window.getTranslation = (key) => translations[window.currentLang][key];
+
+    function togglePasswordVisibility() {
+        const k = document.getElementById('key');
+        k.type = k.type === 'password' ? 'text' : 'password';
+    }
 
     function checkStrength(p) {
         let s = Math.min(p.length * 10, 100);
@@ -170,14 +162,16 @@
     function copyText(id) {
         const el = document.getElementById(id);
         navigator.clipboard.writeText(el.value || el.innerText).then(() => {
-            const statusEl = document.getElementById('status');
-            const oldText = statusEl.innerText;
-            statusEl.innerText = translations[window.currentLang].status_copied;
-            setTimeout(() => statusEl.innerText = oldText, 1500);
+            const oldText = document.getElementById('status').innerText;
+            window.updateStatus('status_copied');
+            setTimeout(() => document.getElementById('status').innerText = oldText, 1500);
         });
     }
 
     function toggleTheme() { document.body.classList.toggle('light-mode'); }
+    
+    // Sahifa yuklanganda statusni birinchi marta o'rnatish
+    window.onload = () => changeLanguage('uz');
 </script>
 
 <script type="py">
@@ -185,7 +179,7 @@ import base64, hashlib, datetime, time, random
 from pyscript import document
 from js import window, Object
 
-SALT = "ULTIMATE_V6.1_PRO_2026"
+SALT = "ULTIMATE_V6.3_FIXED"
 MAGIC_FOOTER = "::SAFE_VAULT_OK::"
 
 def get_crypto_tools(key_s):
@@ -217,10 +211,8 @@ async def create_action(e):
     d = signed_data.encode('utf-8'); p = 16 - (len(d) % 16); d += bytes([p] * p)
     b64 = base64.b64encode(bytes([s[b ^ sh] for b in d])).decode('utf-8')
     
-    now = datetime.datetime.now().strftime("%Y_%m_%d_%H%M")
-    name = f"Vault_{now}" + document.querySelector("#format").value
+    name = f"Vault_{int(time.time())}" + document.querySelector("#format").value
     blob = window.Blob.new([b64]); window.lastBlob = blob; window.lastName = name
-    
     link = document.createElement('a'); link.href = window.URL.createObjectURL(blob); link.download = name; link.click()
 
 async def open_action(e):
@@ -235,7 +227,9 @@ async def open_action(e):
         _, inv, sh, _ = get_crypto_tools(k)
         raw = base64.b64decode(txt.strip())
         db = bytes([inv[b] ^ sh for b in raw])
-        dec_full = db[:-db[-1]].decode('utf-8')
+        
+        try: dec_full = db[:-db[-1]].decode('utf-8')
+        except: raise Exception()
         
         if MAGIC_FOOTER in dec_full:
             content = dec_full.replace(MAGIC_FOOTER, "")
@@ -244,7 +238,7 @@ async def open_action(e):
             if header.startswith("EXPIRE:"):
                 exp_ts = int(header.split(":")[1])
                 if int(time.time()) > exp_ts:
-                    document.querySelector("#status").innerText = window.getTranslation('status_expired')
+                    window.updateStatus('status_expired')
                     document.querySelector("#message").value = ""
                     return
 
@@ -253,11 +247,10 @@ async def open_action(e):
             document.querySelector("#status").innerText = "🔓 " + f_obj.name
         else: raise Exception()
     except:
-        document.querySelector("#status").innerText = window.getTranslation('status_err')
+        window.updateStatus('status_err')
         document.querySelector("#message").value = ""
 
 async def save_action(e):
-    if not window.currentFileHandle: return
     k, m = document.querySelector("#key").value, document.querySelector("#message").value
     if not k: return
     try:
@@ -271,11 +264,15 @@ async def save_action(e):
         d = signed_data.encode('utf-8'); p = 16 - (len(d) % 16); d += bytes([p] * p)
         b64 = base64.b64encode(bytes([s[b ^ sh] for b in d])).decode('utf-8')
         
-        writable = await window.currentFileHandle.createWritable()
-        await writable.write(b64); await writable.close()
-        document.querySelector("#status").innerText = window.getTranslation('status_saved')
-    except Exception as ex:
-        document.querySelector("#status").innerText = f"Error: {str(ex)}"
+        try:
+            writable = await window.currentFileHandle.createWritable()
+            await writable.write(b64); await writable.close()
+            window.updateStatus('status_saved')
+        except:
+            await create_action(None)
+            window.updateStatus('mobile_save')
+    except:
+        window.updateStatus('status_err')
 </script>
 </body>
 </html>

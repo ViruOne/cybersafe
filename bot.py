@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Konfiguratsiya
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_TELEGRAM_BOT_TOKEN_HERE")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://pppkorhqrrsgmfkonalb.supabase.co")
 SUPABASE_KEY = os.getenv(
     "SUPABASE_KEY",

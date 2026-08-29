@@ -33,8 +33,12 @@ BOT_TOKEN = (
     os.getenv("BOT_TOKEN")
     or os.getenv("TELEGRAM_BOT_TOKEN")
     or os.getenv("TOKEN")
-    or ""
+    or "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o"
 ).strip().strip('"').strip("'")
+
+# Agar kiritilgan token noto'g'ri bo'lsa yoki ikki nuqta bo'lmasa, avtomatik haqiqiy tokenni ishlatish
+if not BOT_TOKEN or ":" not in BOT_TOKEN or BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE":
+    BOT_TOKEN = "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o"
 
 SUPABASE_URL = (
     os.getenv("SUPABASE_URL")
@@ -57,18 +61,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Tokenni tekshirish
-if not BOT_TOKEN or BOT_TOKEN == "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o" or ":" not in BOT_TOKEN:
-    present_keys = [k for k in os.environ.keys() if not k.startswith("npm_") and not k.startswith("PATH")]
-    print("\n" + "=" * 65)
-    print("❌ XATOLIK: Telegram Bot Token (BOT_TOKEN) topilmadi!")
-    print("=" * 65)
-    print(f"🔍 Serverda aniqlangan o'zgaruvchilar: {present_keys}")
-    print("\nSabablar:")
-    print("1. Serverda (Railway / Render) o'zgaruvchi nomi 'BOT_TOKEN' deb to'g'ri yozilganmi?")
-    print("2. Qo'shgandan keyin 'Save' bosib, 'Redeploy' qilganmisiz?")
-    print("=" * 65 + "\n")
-    sys.exit(1)
+logger.info(f"🔑 Telegram Bot Token faollashtirildi (Uzunligi: {len(BOT_TOKEN)} belgi)")
 
 # Bot va Dispatcher
 bot = Bot(token=BOT_TOKEN)

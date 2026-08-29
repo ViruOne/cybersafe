@@ -29,12 +29,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Konfiguratsiya
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o")
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://pppkorhqrrsgmfkonalb.supabase.co")
-SUPABASE_KEY = os.getenv(
-    "SUPABASE_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwcGtvcmhxcnJzZ21ma29uYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4MjUxNjIsImV4cCI6MjEwMzQwMTE2Mn0.agWcjMS1tIdDmmPvyRNXFMo3zbN8lJQYg7i_PW4RsAM",
-)
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
 import sys
 
@@ -46,7 +43,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Tokenni tekshirish
-if not BOT_TOKEN or BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE" or ":" not in BOT_TOKEN:
+if not BOT_TOKEN or BOT_TOKEN == "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o" or ":" not in BOT_TOKEN:
     print("\n" + "=" * 60)
     print("❌ XATOLIK: Telegram Bot Token kiritilmagan!")
     print("=" * 60)
@@ -359,7 +356,46 @@ async def save_otp_to_supabase(phone: str, tg_id: int, username: str, code: str,
 
 
 # ==============================================================================
-# 5. ASOSIY ISHGA TUSHIRISH (MAIN RUNNER & HEALTH CHECK SERVER)
+# 5. DAVRIY TOZALASH (PERIODIC OTP CLEANUP TASK)
+# ==============================================================================
+async def periodic_otp_cleanup():
+    """Har 15 daqiqada eskirgan OTP kodlarini Supabase va xotiradan avtomatik tozalaydi"""
+    while True:
+        try:
+            await asyncio.sleep(900)  # 15 daqiqa
+            # 1. Supabase RPC cleanup_expired_otps chaqirish
+            if SUPABASE_KEY and SUPABASE_URL:
+                try:
+                    import urllib.request
+                    url = f"{SUPABASE_URL}/rest/v1/rpc/cleanup_expired_otps"
+                    headers = {
+                        "apikey": SUPABASE_KEY,
+                        "Authorization": f"Bearer {SUPABASE_KEY}",
+                        "Content-Type": "application/json",
+                    }
+                    req = urllib.request.Request(url, data=b"{}", headers=headers, method="POST")
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        logger.info("🧹 Supabase da eski OTP lar tozalandi (RPC cleanup_expired_otps)")
+                except Exception as e:
+                    logger.debug(f"RPC cleanup notice: {e}")
+
+            # 2. Xotiradagi (in-memory) eskirgan ma'lumotlarni tozalash
+            now = datetime.now(timezone.utc)
+            expired_phones = [
+                p for p, data in otp_storage.items()
+                if data.get("expires_at") and now > data["expires_at"] + timedelta(minutes=10)
+            ]
+            for p in expired_phones:
+                otp_storage.pop(p, None)
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.warning(f"Cleanup loop xatosi: {e}")
+
+
+# ==============================================================================
+# 6. ASOSIY ISHGA TUSHIRISH (MAIN RUNNER & HEALTH CHECK SERVER)
 # ==============================================================================
 async def start_health_server():
     """
@@ -403,7 +439,9 @@ async def main():
     await start_health_server()
     # 2. Eskirgan buyruqlarni tozalash
     await bot.delete_webhook(drop_pending_updates=True)
-    # 3. Telegram Polling boshlash
+    # 3. Avtomatik eskirgan OTP larni tozalash fon vazifasini ishga tushirish
+    asyncio.create_task(periodic_otp_cleanup())
+    # 4. Telegram Polling boshlash
     await dp.start_polling(bot)
 
 

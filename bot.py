@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Konfiguratsiya
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_TELEGRAM_BOT_TOKEN_HERE")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://pppkorhqrrsgmfkonalb.supabase.co")
 SUPABASE_KEY = os.getenv(
     "SUPABASE_KEY",
@@ -64,6 +64,11 @@ dp = Dispatcher()
 otp_storage: dict[str, dict] = {}
 pending_auth_phones: dict[int, str] = {}
 
+# Rate Limiting Konfiguratsiyasi (Flood & Spam Himoyasi)
+otp_request_timestamps: dict[str, list[datetime]] = {}
+RATE_LIMIT_COOLDOWN_SECONDS = 60  # Bitta raqamdan qayta so'rov orasidagi tanaffus (60 soniya)
+RATE_LIMIT_MAX_PER_HOUR = 5  # 1 soatda maksimal 5 ta OTP kodi
+
 
 def normalize_phone(raw: str) -> str:
     """Telefon raqamni standart 12 xonali formatga (998901234567) keltiradi"""
@@ -75,6 +80,57 @@ def normalize_phone(raw: str) -> str:
     if digits.startswith("8") and len(digits) == 10:
         return f"998{digits[1:]}"
     return digits
+
+
+def check_rate_limit(phone: str, user_id: int) -> tuple[bool, str]:
+    """
+    Telefon raqami va Telegram User ID bo'yicha so'rovlar chastotasini tekshiradi.
+    Qaytaradi: (ruxsat_berildimi: bool, rad_etish_sababi_html: str)
+    """
+    now = datetime.now(timezone.utc)
+    keys_to_check = [f"phone_{phone}", f"user_{user_id}"]
+
+    for key in keys_to_check:
+        history = otp_request_timestamps.get(key, [])
+        # 1 soatdan eski vaqtlarni tozalash
+        history = [t for t in history if (now - t).total_seconds() < 3600]
+        otp_request_timestamps[key] = history
+
+        # 1. Soatlik cheklov (Maksimal 5 ta)
+        if len(history) >= RATE_LIMIT_MAX_PER_HOUR:
+            oldest = history[0]
+            cooldown_rem = int(3600 - (now - oldest).total_seconds())
+            mins_rem = max(1, cooldown_rem // 60)
+            return (
+                False,
+                f"🚫 <b>Xavfsizlik cheklovi faollashdi!</b>\n\n"
+                f"Siz 1 soatlik maksimal limitdan (<b>{RATE_LIMIT_MAX_PER_HOUR} ta OTP</b>) oshib ketdingiz.\n\n"
+                f"⏳ Iltimos, <b>{mins_rem} daqiqa</b>dan so'ng qayta urinib ko'ring.",
+            )
+
+        # 2. Qisqa muddatli so'rovlar orasidagi tanaffus (60 soniya)
+        if history:
+            last_request = history[-1]
+            elapsed = (now - last_request).total_seconds()
+            if elapsed < RATE_LIMIT_COOLDOWN_SECONDS:
+                remaining_sec = int(RATE_LIMIT_COOLDOWN_SECONDS - elapsed)
+                return (
+                    False,
+                    f"⏳ <b>Iltimos, biroz kuting!</b>\n\n"
+                    f"Xavfsizlik yuzasidan yangi tasdiqlash kodini olish uchun yana <b>{remaining_sec} soniya</b> kuting.\n\n"
+                    f"<i>Eslatma: Avval yuborilgan kod 2 daqiqa davomida amal qiladi.</i>",
+                )
+
+    return (True, "")
+
+
+def record_successful_otp_request(phone: str, user_id: int):
+    """Muvaffaqiyatli OTP so'rovining vaqtini tarixga qayd etadi"""
+    now = datetime.now(timezone.utc)
+    for key in [f"phone_{phone}", f"user_{user_id}"]:
+        if key not in otp_request_timestamps:
+            otp_request_timestamps[key] = []
+        otp_request_timestamps[key].append(now)
 
 
 # ==============================================================================
@@ -178,7 +234,20 @@ async def handle_contact(message: types.Message):
         )
         return
 
-    # 3-Qadam: 6 xonali xavfsiz OTP kod generatsiya qilish
+    # 4-Tekshiruv: Rate Limiting (Flood & Spam Himoyasi — 60s cooldown & 5 max/soat)
+    is_allowed, rate_limit_msg = check_rate_limit(raw_phone, user_id)
+    if not is_allowed:
+        await message.answer(
+            rate_limit_msg,
+            parse_mode=ParseMode.HTML,
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        return
+
+    # Muvaffaqiyatli urinish vaqtini qayd etish
+    record_successful_otp_request(raw_phone, user_id)
+
+    # 5-Qadam: 6 xonali xavfsiz OTP kod generatsiya qilish
     otp_code = f"{random.randint(100000, 999999)}"
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(minutes=2)  # 2 daqiqalik amal qilish muddati

@@ -290,13 +290,51 @@ async def save_otp_to_supabase(phone: str, tg_id: int, username: str, code: str,
 
 
 # ==============================================================================
-# 5. ASOSIY ISHGA TUSHIRISH (MAIN RUNNER)
+# 5. ASOSIY ISHGA TUSHIRISH (MAIN RUNNER & HEALTH CHECK SERVER)
 # ==============================================================================
+async def start_health_server():
+    """
+    Render.com Web Service uchun Health Check HTTP Server.
+    Render $PORT dagi 200 OK javobini ko'rib, 'Deploy successful / Live' deb belgilaydi.
+    """
+    port = int(os.environ.get("PORT", 10000))
+    
+    async def handle_request(reader, writer):
+        try:
+            await reader.read(1024)
+            body = "Lazzat Telegram Bot is LIVE and Healthy! 👑\n"
+            response = (
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: text/plain; charset=utf-8\r\n"
+                f"Content-Length: {len(body.encode('utf-8'))}\r\n"
+                "Connection: close\r\n\r\n"
+                f"{body}"
+            )
+            writer.write(response.encode('utf-8'))
+            await writer.drain()
+        except Exception:
+            pass
+        finally:
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception:
+                pass
+
+    try:
+        server = await asyncio.start_server(handle_request, "0.0.0.0", port)
+        logger.info(f"🌐 Health check HTTP server faollashdi: port {port}")
+    except Exception as e:
+        logger.warning(f"⚠️ Health check server ishga tushmadi (lokal rejimda normal): {e}")
+
+
 async def main():
     logger.info("🚀 Lazzat Telegram Bot ishga tushmoqda...")
-    # Eskirgan buyruqlarni tozalash
+    # 1. Render.com uchun Health Check serverni yoqish
+    await start_health_server()
+    # 2. Eskirgan buyruqlarni tozalash
     await bot.delete_webhook(drop_pending_updates=True)
-    # Polling boshlash
+    # 3. Telegram Polling boshlash
     await dp.start_polling(bot)
 
 

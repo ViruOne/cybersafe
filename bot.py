@@ -29,9 +29,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Konfiguratsiya
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_TELEGRAM_BOT_TOKEN_HERE")
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://qfhnzcwkuxdfdsvdpsvx.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://pppkorhqrrsgmfkonalb.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwcGtvcmhxcnJzZ21ma29uYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4MjUxNjIsImV4cCI6MjEwMzQwMTE2Mn0.agWcjMS1tIdDmmPvyRNXFMo3zbN8lJQYg7i_PW4RsAM")
 
 # Logging sozlamalari
 logging.basicConfig(

@@ -58,7 +58,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Tokenni tekshirish
-if not BOT_TOKEN or BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE" or ":" not in BOT_TOKEN:
+if not BOT_TOKEN or BOT_TOKEN == "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o" or ":" not in BOT_TOKEN:
     present_keys = [k for k in os.environ.keys() if not k.startswith("npm_") and not k.startswith("PATH")]
     print("\n" + "=" * 65)
     print("❌ XATOLIK: Telegram Bot Token (BOT_TOKEN) topilmadi!")

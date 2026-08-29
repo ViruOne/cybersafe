@@ -40,11 +40,17 @@ BOT_TOKEN = (
 if not BOT_TOKEN or ":" not in BOT_TOKEN or BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE":
     BOT_TOKEN = "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o"
 
-SUPABASE_URL = (
+# Supabase URL va Key ni xavfsiz tozalash
+_raw_url = (
     os.getenv("SUPABASE_URL")
     or os.getenv("SUPABASE_PROJECT_URL")
     or "https://pppkorhqrrsgmfkonalb.supabase.co"
-).strip().strip('"').strip("'")
+).strip().strip('"').strip("'").rstrip("/")
+
+if _raw_url and not _raw_url.startswith("http://") and not _raw_url.startswith("https://"):
+    _raw_url = f"https://{_raw_url}"
+
+SUPABASE_URL = _raw_url if _raw_url else "https://pppkorhqrrsgmfkonalb.supabase.co"
 
 SUPABASE_KEY = (
     os.getenv("SUPABASE_KEY")
@@ -332,37 +338,47 @@ async def save_otp_to_supabase(phone: str, tg_id: int, username: str, code: str,
     """
     OTP kodini Supabase ma'lumotlar bazasiga yozish (Kutubxonasiz - 100% ishonchli).
     """
-    if not SUPABASE_KEY:
-        return
+    import json
+    import urllib.request
+    import urllib.error
 
-    try:
-        import json
-        import urllib.request
+    urls_to_try = [
+        f"{SUPABASE_URL}/rest/v1/app_settings",
+        "https://pppkorhqrrsgmfkonalb.supabase.co/rest/v1/app_settings",
+    ]
+    key_to_use = (
+        SUPABASE_KEY
+        if SUPABASE_KEY
+        else "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwcGtvcmhxcnJzZ21ma29uYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4MjUxNjIsImV4cCI6MjEwMzQwMTE2Mn0.agWcjMS1tIdDmmPvyRNXFMo3zbN8lJQYg7i_PW4RsAM"
+    )
 
-        url = f"{SUPABASE_URL}/rest/v1/app_settings"
-        payload = {
-            "key": f"auth_otp_{phone}",
-            "value": {
-                "phone": f"+{phone}",
-                "telegram_user_id": tg_id,
-                "telegram_username": username,
-                "code": code,
-                "is_used": False,
-                "expires_at": expires_at.isoformat(),
-            },
-        }
-        data = json.dumps(payload).encode("utf-8")
-        headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "resolution=merge-duplicates",
-        }
-        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            logger.info(f"💾 OTP Supabase ga saqlandi (+{phone} -> {code}, status {resp.status})")
-    except Exception as e:
-        logger.error(f"❌ Supabase sync xatoligi: {e}")
+    payload = {
+        "key": f"auth_otp_{phone}",
+        "value": {
+            "phone": f"+{phone}",
+            "telegram_user_id": tg_id,
+            "telegram_username": username,
+            "code": code,
+            "is_used": False,
+            "expires_at": expires_at.isoformat(),
+        },
+    }
+    data = json.dumps(payload).encode("utf-8")
+    headers = {
+        "apikey": key_to_use,
+        "Authorization": f"Bearer {key_to_use}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates",
+    }
+
+    for url in list(dict.fromkeys(urls_to_try)):
+        try:
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                logger.info(f"💾 OTP Supabase ga saqlandi (+{phone} -> {code}, status {resp.status})")
+                return
+        except Exception as e:
+            logger.warning(f"⚠️ Supabase sync urinish xatosi ({url}): {e}")
 
 
 # ==============================================================================

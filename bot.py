@@ -28,10 +28,25 @@ from dotenv import load_dotenv
 # .env faylini yuklash
 load_dotenv()
 
-# Konfiguratsiya
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o")
-SUPABASE_URL = os.getenv("SUPABASE_URL", "pppkorhqrrsgmfkonalb.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwcGtvcmhxcnJzZ21ma29uYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4MjUxNjIsImV4cCI6MjEwMzQwMTE2Mn0.agWcjMS1tIdDmmPvyRNXFMo3zbN8lJQYg7i_PW4RsAM")
+# Konfiguratsiya — turli nomdagi o'zgaruvchilarni qabul qilish va bo'shliqlarni tozalash
+BOT_TOKEN = (
+    os.getenv("BOT_TOKEN")
+    or os.getenv("TELEGRAM_BOT_TOKEN")
+    or os.getenv("TOKEN")
+    or ""
+).strip().strip('"').strip("'")
+
+SUPABASE_URL = (
+    os.getenv("SUPABASE_URL")
+    or os.getenv("SUPABASE_PROJECT_URL")
+    or "https://pppkorhqrrsgmfkonalb.supabase.co"
+).strip().strip('"').strip("'")
+
+SUPABASE_KEY = (
+    os.getenv("SUPABASE_KEY")
+    or os.getenv("SUPABASE_ANON_KEY")
+    or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwcGtvcmhxcnJzZ21ma29uYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4MjUxNjIsImV4cCI6MjEwMzQwMTE2Mn0.agWcjMS1tIdDmmPvyRNXFMo3zbN8lJQYg7i_PW4RsAM"
+).strip().strip('"').strip("'")
 
 import sys
 
@@ -43,14 +58,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Tokenni tekshirish
-if not BOT_TOKEN or BOT_TOKEN == "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o" or ":" not in BOT_TOKEN:
-    print("\n" + "=" * 60)
-    print("❌ XATOLIK: Telegram Bot Token kiritilmagan!")
-    print("=" * 60)
-    print("Iltimos, .env fayliga @BotFather dan olgan tokeningizni kiriting:")
-    print("Fayl manzili: C:\\Users\\User\\Desktop\\lazzat_telegram_bot\\.env")
-    print("Misol: BOT_TOKEN=7123456789:AAHk1234567890abcdefghijklmnopqrst")
-    print("=" * 60 + "\n")
+if not BOT_TOKEN or BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE" or ":" not in BOT_TOKEN:
+    present_keys = [k for k in os.environ.keys() if not k.startswith("npm_") and not k.startswith("PATH")]
+    print("\n" + "=" * 65)
+    print("❌ XATOLIK: Telegram Bot Token (BOT_TOKEN) topilmadi!")
+    print("=" * 65)
+    print(f"🔍 Serverda aniqlangan o'zgaruvchilar: {present_keys}")
+    print("\nSabablar:")
+    print("1. Serverda (Railway / Render) o'zgaruvchi nomi 'BOT_TOKEN' deb to'g'ri yozilganmi?")
+    print("2. Qo'shgandan keyin 'Save' bosib, 'Redeploy' qilganmisiz?")
+    print("=" * 65 + "\n")
     sys.exit(1)
 
 # Bot va Dispatcher

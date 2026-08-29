@@ -31,7 +31,12 @@ load_dotenv()
 # Konfiguratsiya
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8654252494:AAGV1gvGEBNXhPWck1Zkm4Y-9cGM4npLN4o")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://pppkorhqrrsgmfkonalb.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwcGtvcmhxcnJzZ21ma29uYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4MjUxNjIsImV4cCI6MjEwMzQwMTE2Mn0.agWcjMS1tIdDmmPvyRNXFMo3zbN8lJQYg7i_PW4RsAM")
+SUPABASE_KEY = os.getenv(
+    "SUPABASE_KEY",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwcGtvcmhxcnJzZ21ma29uYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4MjUxNjIsImV4cCI6MjEwMzQwMTE2Mn0.agWcjMS1tIdDmmPvyRNXFMo3zbN8lJQYg7i_PW4RsAM",
+)
+
+import sys
 
 # Logging sozlamalari
 logging.basicConfig(
@@ -40,13 +45,36 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Tokenni tekshirish
+if not BOT_TOKEN or BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE" or ":" not in BOT_TOKEN:
+    print("\n" + "=" * 60)
+    print("❌ XATOLIK: Telegram Bot Token kiritilmagan!")
+    print("=" * 60)
+    print("Iltimos, .env fayliga @BotFather dan olgan tokeningizni kiriting:")
+    print("Fayl manzili: C:\\Users\\User\\Desktop\\lazzat_telegram_bot\\.env")
+    print("Misol: BOT_TOKEN=7123456789:AAHk1234567890abcdefghijklmnopqrst")
+    print("=" * 60 + "\n")
+    sys.exit(1)
+
 # Bot va Dispatcher
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # Xotiradagi OTP saqlash joyi (In-Memory Fallback)
-# Format: {phone_number: {"code": "123456", "expires_at": datetime, "user_id": int}}
 otp_storage: dict[str, dict] = {}
+pending_auth_phones: dict[int, str] = {}
+
+
+def normalize_phone(raw: str) -> str:
+    """Telefon raqamni standart 12 xonali formatga (998901234567) keltiradi"""
+    digits = "".join([c for c in str(raw) if c.isdigit()])
+    if digits.startswith("998") and len(digits) == 12:
+        return digits
+    if len(digits) == 9:
+        return f"998{digits}"
+    if digits.startswith("8") and len(digits) == 10:
+        return f"998{digits[1:]}"
+    return digits
 
 
 # ==============================================================================
@@ -60,6 +88,14 @@ async def cmd_start(message: types.Message):
     """
     user = message.from_user
     first_name = user.first_name if user else "Foydalanuvchi"
+    user_id = user.id if user else 0
+
+    # Start argumentidan ilovada kiritilgan telefon raqamini olish (masalan: /start reg_998901234567)
+    command_text = message.text or ""
+    if "reg_" in command_text:
+        extracted_phone = normalize_phone(command_text.split("reg_")[-1])
+        if extracted_phone.startswith("998") and len(extracted_phone) == 12:
+            pending_auth_phones[user_id] = extracted_phone
 
     # Maxsus kontakt so'rash tugmasi (Qo'lda kiritishni oldini olish uchun)
     contact_keyboard = ReplyKeyboardMarkup(
@@ -67,7 +103,7 @@ async def cmd_start(message: types.Message):
             [
                 KeyboardButton(
                     text="📱 Telefon raqamni yuborish",
-                    request_contact=True,  # Faqat shu tugma orqali haqiqiy raqam olinadi
+                    request_contact=True,
                 )
             ]
         ],
@@ -81,8 +117,8 @@ async def cmd_start(message: types.Message):
         f"autentifikatsiya botiga xush kelibsiz! 🍽️✨\n\n"
         f"📲 Ilovaga xavfsiz ro'yxatdan o'tish yoki kirish uchun, iltimos, "
         f"pastdagi <b>«📱 Telefon raqamni yuborish»</b> tugmasini bosing.\n\n"
-        f"<i>⚠️ Eslatma: Xavfsizlik yuzasidan telefon raqamingiz aynan Telegram "
-        f"hisobingizga biriktirilgan bo'lishi shart.</i>"
+        f"<i>⚠️ Eslatma: Xavfsizlik yuzasidan ilovada kiritilgan raqam bilan Telegram "
+        f"hisobingizdagi raqam aynan bir xil bo'lishi shart.</i>"
     )
 
     await message.answer(
@@ -113,8 +149,8 @@ async def handle_contact(message: types.Message):
         )
         return
 
-    # Telefon raqamini tozalash
-    raw_phone = contact.phone_number.replace("+", "").replace(" ", "").replace("-", "").strip()
+    # Telefon raqamini tozalash va standartlashtirish
+    raw_phone = normalize_phone(contact.phone_number)
 
     # 2-Tekshiruv: Faqat O'zbekiston raqami (+998...) bo'lishi shart!
     if not (raw_phone.startswith("998") and len(raw_phone) == 12):
@@ -124,6 +160,19 @@ async def handle_contact(message: types.Message):
             f"uchun xizmat ko'rsatadi.\n\n"
             f"Sizning raqamingiz: <code>+{raw_phone}</code>\n"
             f"Iltimos, O'zbekiston raqamiga ochilgan Telegram orqali kiring.",
+            parse_mode=ParseMode.HTML,
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        return
+
+    # 3-Tekshiruv: Ilovada kiritilgan telefon raqam bilan Telegramdagi raqam bir xilmi?
+    expected_phone = pending_auth_phones.get(user_id)
+    if expected_phone and expected_phone != raw_phone:
+        await message.answer(
+            f"❌ <b>Telefon raqamlar mos kelmadi!</b>\n\n"
+            f"📱 Ilovada kiritilgan raqam: <code>+{expected_phone}</code>\n"
+            f"👤 Telegramdagi raqamingiz: <code>+{raw_phone}</code>\n\n"
+            f"Iltimos, ilovada o'zingizning <b>Telegram hisobingizga tegishli raqamni</b> kiriting va qaytadan urinib ko'ring.",
             parse_mode=ParseMode.HTML,
             reply_markup=ReplyKeyboardRemove(),
         )
@@ -142,7 +191,7 @@ async def handle_contact(message: types.Message):
         "username": message.from_user.username if message.from_user else "",
     }
 
-    # Supabase bazasiga saqlash (mavjud bo'lsa)
+    # Supabase bazasiga saqlash
     await save_otp_to_supabase(raw_phone, user_id, message.from_user.username or "", otp_code, expires_at)
 
     logger.info(f"✅ OTP generated for +{raw_phone}: {otp_code} (Expires in 2 mins)")
@@ -201,30 +250,43 @@ async def handle_manual_text(message: types.Message):
 
 
 # ==============================================================================
-# 4. SUPABASE INTEGRATSIYASI (Yordamchi Funksiya)
+# 4. SUPABASE INTEGRATSIYASI (To'g'ridan-to'g'ri REST API - urllib orqali)
 # ==============================================================================
 async def save_otp_to_supabase(phone: str, tg_id: int, username: str, code: str, expires_at: datetime):
     """
-    OTP kodini Supabase ma'lumotlar bazasiga yozish (Flutter ilovasi tekshirishi uchun).
+    OTP kodini Supabase ma'lumotlar bazasiga yozish (Kutubxonasiz - 100% ishonchli).
     """
     if not SUPABASE_KEY:
         return
 
     try:
-        from supabase import create_client
+        import json
+        import urllib.request
 
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        supabase.table("telegram_auth_otps").insert({
-            "phone_number": f"+{phone}",
-            "telegram_user_id": tg_id,
-            "telegram_username": username,
-            "otp_code": code,
-            "is_used": False,
-            "expires_at": expires_at.isoformat(),
-        }).execute()
-        logger.info(f"💾 OTP saved to Supabase for +{phone}")
+        url = f"{SUPABASE_URL}/rest/v1/app_settings"
+        payload = {
+            "key": f"auth_otp_{phone}",
+            "value": {
+                "phone": f"+{phone}",
+                "telegram_user_id": tg_id,
+                "telegram_username": username,
+                "code": code,
+                "is_used": False,
+                "expires_at": expires_at.isoformat(),
+            },
+        }
+        data = json.dumps(payload).encode("utf-8")
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates",
+        }
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            logger.info(f"💾 OTP Supabase ga saqlandi (+{phone} -> {code}, status {resp.status})")
     except Exception as e:
-        logger.warning(f"Supabase sync warning (running in in-memory mode): {e}")
+        logger.error(f"❌ Supabase sync xatoligi: {e}")
 
 
 # ==============================================================================
